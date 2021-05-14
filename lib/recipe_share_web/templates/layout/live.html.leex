@@ -12,7 +12,7 @@
       </div>
       <div class="text-right flex-1">
       <div
-        x-data="{ open: false, loggedIn: <%= not is_nil(@user) %> }"
+        x-data="{ open: false, loggedIn: <%= not is_nil(@access_token) %> }"
         x-cloak
         class="ml-3 relative">
         <div>

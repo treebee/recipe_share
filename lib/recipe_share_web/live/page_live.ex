@@ -1,11 +1,18 @@
 defmodule RecipeShareWeb.PageLive do
   use RecipeShareWeb, :surface_view
 
+  data access_token, :string, default: nil
+
   @impl true
   def mount(_params, %{"access_token" => access_token}, socket) do
     send(self(), {:ensure_profile, access_token})
     socket = assign(socket, access_token: access_token)
     {:ok, assign_new(socket, :user, fn -> fetch_user(access_token) end)}
+  end
+
+  @impl true
+  def mount(_params, _session, socket) do
+    {:ok, socket}
   end
 
   @impl true

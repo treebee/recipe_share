@@ -50,7 +50,8 @@ defmodule RecipeShare.MixProject do
       {:surface, "~> 0.4.0"},
       {:surface_catalogue, "~> 0.0.8", only: [:dev, :test]},
       # github: "treebee/supabase-surface"},
-      {:supabase_surface, path: "../supabase_surface"}
+      {:supabase_surface, path: "../supabase_surface"},
+      {:joken, "~> 2.0"}
     ]
   end
 
