@@ -18,6 +18,8 @@ defmodule RecipeShareWeb.Router do
     pipe_through :browser
 
     live "/", PageLive, :index
+    live "/login", AuthLive, :index
+    live "/register", AuthLive, :index
   end
 
   # Other scopes may use custom stacks.

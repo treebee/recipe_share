@@ -49,7 +49,8 @@ defmodule RecipeShare.MixProject do
       {:plug_cowboy, "~> 2.0"},
       {:surface, "~> 0.4.0"},
       {:surface_catalogue, "~> 0.0.8", only: [:dev, :test]},
-      {:supabase_surface, github: "treebee/supabase-surface"},
+      # github: "treebee/supabase-surface"},
+      {:supabase_surface, path: "../supabase_surface"}
     ]
   end
 

@@ -1,15 +1,12 @@
 defmodule RecipeShareWeb.PageLive do
   use RecipeShareWeb, :surface_view
 
-  alias RecipeShareWeb.Components.Navbar
+  data user, :map, default: nil
 
   @impl true
   def render(assigns) do
     ~H"""
 
-    <header>
-      <Navbar />
-    </header>
     """
   end
 end
