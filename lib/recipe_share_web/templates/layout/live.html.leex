@@ -1,7 +1,9 @@
 <header class="bg-indigo-300">
  <nav role="navigation">
     <div class="container flex mx-auto items-center px-2 py-4">
-      <div class="flex-1 text-2xl font-bold">Recipe Share</div>
+      <div class="flex-1 text-2xl font-bold">
+        <a href="/">Recipe Share</a>
+      </div>
       <div class="flex-grow flex focus-within:ring-1 ring-indigo-500 rounded-md">
         <input
          class="p-3 rounded-l-md placeholder-gray-300 w-full focus:outline-none"
@@ -28,9 +30,11 @@
       <div
         x-cloak
         x-show.transition="open"
-        class="origin-top-right absolute right-0 z-10 mt-2 w-48 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5" role="menu" aria-orientation="vertical" aria-labelledby="user-menu">
-        <a href="<%= Routes.auth_path(@socket, :index) %>" x-show="!loggedIn" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Login</a>
+        class="origin-top-right absolute right-0 z-10 mt-2 w-32 rounded-md shadow-lg py-1 bg-white ring-1 ring-black ring-opacity-5" role="menu" aria-orientation="vertical" aria-labelledby="user-menu">
+        <a href="/login" x-show="!loggedIn" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Login</a>
         <a href="#" x-show="!loggedIn" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Register</a>
+        <a href="/recipes" x-show="loggedIn" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Your Recipes</a>
+
         <a href="#" x-show="loggedIn" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" role="menuitem">Logout</a>
       </div>
     </div>
@@ -47,6 +51,7 @@
   <p class="alert alert-danger" role="alert"
     phx-click="lv:clear-flash"
     phx-value-key="error"><%= live_flash(@flash, :error) %></p>
+
 
   <%= @inner_content %>
 </main>

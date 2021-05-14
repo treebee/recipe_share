@@ -44,8 +44,24 @@ defmodule RecipeShareWeb do
 
   def surface_view do
     quote do
-      use Surface.LiveView,
+      use Surface.LiveView
+
+      unquote(view_helpers())
+    end
+  end
+
+  def live_view do
+    quote do
+      use Phoenix.LiveView,
         layout: {RecipeShareWeb.LayoutView, "live.html"}
+
+      unquote(view_helpers())
+    end
+  end
+
+  def live_component do
+    quote do
+      use Phoenix.LiveComponent
 
       unquote(view_helpers())
     end

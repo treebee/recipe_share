@@ -23,7 +23,12 @@ defmodule RecipeShareWeb.Plugs.TokenRefresh do
   defp refresh_access_token(time_remaining, refresh_token, conn) when time_remaining < 10 do
     case Supabase.auth() |> GoTrue.refresh_access_token(refresh_token) do
       {:ok, %{"access_token" => at, "refresh_token" => rt}} ->
-        conn |> put_session(:access_token, at) |> put_session(:refresh_token, rt)
+        {:ok, user} = Supabase.auth() |> GoTrue.get_user(at)
+
+        conn
+        |> put_session(:access_token, at)
+        |> put_session(:refresh_token, rt)
+        |> put_session(:user_id, user_id: user["id"])
 
       _ ->
         conn |> clear_session()

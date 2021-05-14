@@ -8,10 +8,12 @@ function ns(hooks, nameSpace) {
   return updatedHooks
 }
 
-import * as c1 from "./SupabaseSurface.Components.Auth.hooks"
+import * as c1 from "./RecipeShareWeb.Components.Modal.hooks"
+import * as c2 from "./SupabaseSurface.Components.Auth.hooks"
 
 let hooks = Object.assign(
-  ns(c1, "SupabaseSurface.Components.Auth")
+  ns(c1, "RecipeShareWeb.Components.Modal"),
+  ns(c2, "SupabaseSurface.Components.Auth")
 )
 
 export default hooks
