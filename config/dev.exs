@@ -3,10 +3,10 @@ use Mix.Config
 # Configure your database
 config :recipe_share, RecipeShare.Repo,
   username: "postgres",
-  password: "postgres",
-  database: "recipe_share_dev",
-  hostname: "localhost",
-  port: 2345,
+  password: System.get_env("DB_PASSWORD", "postgres"),
+  database: "postgres",
+  hostname: System.get_env("DB_HOST", "localhost"),
+  port: 5432,
   show_sensitive_data_on_connection_error: true,
   pool_size: 10
 

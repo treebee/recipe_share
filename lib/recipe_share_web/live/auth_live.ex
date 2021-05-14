@@ -10,7 +10,9 @@ defmodule RecipeShareWeb.AuthLive do
     ~H"""
     <div class="bg-gray-800 h-screen pt-20 px-5">
       <div class="container mx-auto max-w-sm">
-        <Auth id="supabase-auth" providers={{ ["github", "google"] }} />
+        <Auth id="supabase-auth"
+         providers={{ ["github", "google"] }}
+         />
       </div>
     </div>
     """

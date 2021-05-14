@@ -14,6 +14,14 @@ defmodule RecipeShareWeb.Router do
     plug :accepts, ["json"]
   end
 
+  # Other scopes may use custom stacks.
+  scope "/", RecipeShareWeb do
+    pipe_through :api
+    pipe_through :fetch_session
+
+    post "/session", SessionController, :set_session
+  end
+
   scope "/", RecipeShareWeb do
     pipe_through :browser
 

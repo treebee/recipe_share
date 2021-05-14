@@ -7,7 +7,6 @@ defmodule RecipeShare.Repo.Migrations.CreateProfiles do
       add :username, :text
       add :avatar_url, :text
 
-      timestamps()
     end
 
   end

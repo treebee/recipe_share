@@ -2,13 +2,11 @@ defmodule RecipeShare.Accounts.Profile do
   use Ecto.Schema
   import Ecto.Changeset
 
-  @primary_key {:id, :uuid, []}
+  @primary_key {:id, Ecto.UUID, []}
 
   schema "profiles" do
     field :avatar_url, :string
     field :username, :string
-
-    timestamps()
   end
 
   @doc false
