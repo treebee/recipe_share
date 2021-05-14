@@ -61,8 +61,9 @@ config :recipe_share, RecipeShareWeb.Endpoint,
     patterns: [
       ~r"priv/static/.*(js|css|png|jpeg|jpg|gif|svg)$",
       ~r"priv/gettext/.*(po)$",
-      ~r"lib/recipe_share_web/(live|views)/.*(ex)$",
-      ~r"lib/recipe_share_web/templates/.*(eex)$"
+      ~r"lib/recipe_share_web/(live|views)/.*(ex|sface)$",
+      ~r"lib/recipe_share_web/templates/.*(eex|sface)$",
+      ~r"lib/recipe_share_web/live/(components)/.*(ex|js|sface)$"
     ]
   ]
 
