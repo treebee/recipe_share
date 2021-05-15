@@ -5,6 +5,7 @@ defmodule RecipeShare.Recipes.Recipe do
   schema "recipes" do
     embeds_many :ingredients, RecipeShare.Recipes.Ingredient
     field :name, :string
+    field :description, :string
     field :picture_urls, {:array, :string}
     field :published, :boolean, default: false
     field :tags, {:array, :string}
@@ -16,8 +17,8 @@ defmodule RecipeShare.Recipes.Recipe do
   @doc false
   def changeset(recipe, attrs) do
     recipe
-    |> cast(attrs, [:name, :picture_urls, :published, :tags])
+    |> cast(attrs, [:name, :picture_urls, :published, :tags, :description])
     |> cast_embed(:ingredients, with: &RecipeShare.Recipes.Ingredient.changeset/2)
-    |> validate_required([:name, :picture_urls, :ingredients, :published, :tags])
+    |> validate_required([:name, :ingredients, :published])
   end
 end

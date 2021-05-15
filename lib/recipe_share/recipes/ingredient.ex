@@ -1,7 +1,6 @@
 defmodule RecipeShare.Recipes.Ingredient do
   use Ecto.Schema
   import Ecto.Changeset
-  alias RecipeShare.Recipes.Ingredient
 
   # keep it simple here and use free form text instead of having extra unit types
   # for 'kilograms', 'litres' etc...
@@ -15,9 +14,16 @@ defmodule RecipeShare.Recipes.Ingredient do
   end
 
   @doc false
-  def changeset(%Ingredient{} = ingredient, attrs) do
+  def changeset(%__MODULE__{} = ingredient, attrs) do
     ingredient
     |> cast(attrs, [:quantity, :name])
     |> validate_required([:quantity, :name])
   end
+
+  def changeset(%{quantity: quantity, name: name}, attrs) do
+    %__MODULE__{quantity: quantity, name: name}
+    |> changeset(attrs)
+  end
+
+  def changeset(%{}, attrs), do: changeset(%__MODULE__{}, attrs)
 end
