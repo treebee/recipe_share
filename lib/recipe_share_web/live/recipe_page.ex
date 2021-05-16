@@ -2,7 +2,8 @@ defmodule RecipeShareWeb.RecipePage do
   use RecipeShareWeb, :surface_live_component
 
   alias Surface.Components.Form
-  alias Surface.Components.Form.{Field, TextInput, Submit, Label, Inputs, Checkbox, TextArea}
+  alias Surface.Components.Form.{Field, TextInput, Label, Inputs, Checkbox, TextArea}
+  alias Surface.Components.LiveFileInput
   alias RecipeShare.Recipes.{Recipe, Ingredient}
   alias RecipeShare.Recipes
   alias RecipeShareWeb.Components.Modal
@@ -11,6 +12,7 @@ defmodule RecipeShareWeb.RecipePage do
   data action, :atom, default: :new
   data recipes, :list, default: []
   data show_modal, :boolean, default: false
+  prop uploads, :struct, required: true
 
   data recipe, :map, default: %Recipe{}
   data changeset, :map, default: Recipe.changeset(%Recipe{}, %{})
@@ -46,7 +48,9 @@ defmodule RecipeShareWeb.RecipePage do
       </div>
       <div :if={{ length(@recipes) > 0 }}>
         <h2 class="font-semibold text-xl text-center">Your Recipes</h2>
-        <RecipeList id="recipes-list" recipes={{ @recipes }} publish="publish-recipe" />
+        <div class="rounded-md p-2 bg-indigo-200 my-4">
+          <RecipeList recipes={{ @recipes }} publish="publish-recipe" />
+        </div>
       </div>
       <h2 :if={{ length(@recipes) == 0 }} class="font-semibold text-xl text-center">
         You haven't shared any recipes yet.
@@ -84,16 +88,35 @@ defmodule RecipeShareWeb.RecipePage do
             </div>
           </Inputs>
           <div>
-            <a href="#" :on-click="add_ingredient" class="text-blue-400 hover:text-blue-500 text-sm">Add a ingredient</a>
+            <a href="#" :on-click="add_ingredient" class="text-blue-400 hover:text-blue-500 text-sm my-2">Add a ingredient</a>
           </div>
-          <Field name={{ :published }}>
-            <Label>Publish</Label>
+          <Field name={{ :published }} class="my-2">
+            <Label class="font-semibold mr-2">Publish recipe</Label>
             <Checkbox />
           </Field>
-          <Submit
-           class="my-2 bg-blue-600 uppercase font-semibold p-2 rounded-md disabled:opacity-30"
-           opts={{ disabled: not @changeset.valid? }}
-          >Save</Submit>
+          <div>
+            <div class="py-2 grid grid-cols-3 gap-1">
+              <div class="block" :for={{ entry <- @uploads.recipe_picture.entries }}>
+                {{ live_img_preview entry, width: 80 }}
+                <button type="button" :on-click="cancel-upload" phx-value-ref={{ entry.ref }} aria-label="cancel">&times;</button>
+                <div
+                 class="my-2 text-red-400"
+                 :for={{ err <- upload_errors(@uploads.recipe_picture, entry) }}
+                >
+                  <p>{{ error_to_string(err) }}</p>
+                </div>
+              </div>
+            </div>
+            <LiveFileInput upload={{ @uploads.recipe_picture }} />
+
+          </div>
+          <div class="flex justify-end my-2">
+            <button
+            type="submit"
+            class="px-4 py-2 my-2 bg-blue-600 text-white uppercase font-semibold rounded-md disabled:opacity-30"
+            disabled= {{ not @changeset.valid? }}
+            >Save</button>
+          </div>
         </Form>
       </Modal>
     </div>
@@ -108,7 +131,7 @@ defmodule RecipeShareWeb.RecipePage do
       |> Postgrestex.call()
       |> Supabase.json()
 
-    recipes |> IO.inspect()
+    recipes
   end
 
   @impl true
@@ -125,19 +148,18 @@ defmodule RecipeShareWeb.RecipePage do
 
   @impl true
   def handle_event("validate", %{"recipe" => recipe_params}, socket) do
-    IO.inspect(recipe_params)
-
     changeset =
       socket.assigns.recipe
       |> Recipes.change_recipe(recipe_params)
       |> Map.put(:action, :validate)
 
-    IO.inspect({changeset.data, changeset.changes})
     {:noreply, assign(socket, changeset: changeset)}
   end
 
   @impl true
   def handle_event("save", %{"recipe" => recipe_params}, socket) do
+    uploaded_files = handle_file_uploads(socket)
+
     now = DateTime.utc_now()
 
     recipe_params =
@@ -149,6 +171,7 @@ defmodule RecipeShareWeb.RecipePage do
         "ingredients",
         Map.values(Map.get(recipe_params, "ingredients", %{}))
       )
+      |> Map.put("picture_urls", uploaded_files)
 
     ch = Recipes.change_recipe(get_recipe("new"), recipe_params)
 
@@ -210,6 +233,14 @@ defmodule RecipeShareWeb.RecipePage do
      )}
   end
 
+  @impl true
+  def handle_event("cancel-upload", %{"ref" => ref}, socket) do
+    {:noreply, cancel_upload(socket, :recipe_picture, ref)}
+  end
+
+  defp error_to_string(:too_large), do: "Too large"
+  defp error_to_string(:too_many_files), do: "You have selected too many files"
+  defp error_to_string(:not_accepted), do: "You have selected an unacceptable file type"
   def get_recipe("new"), do: %Recipe{ingredients: []}
 
   defp modal_title(:new), do: "Create a new Recipe"
@@ -221,4 +252,21 @@ defmodule RecipeShareWeb.RecipePage do
 
   defp set_published(%{"id" => id} = recipe, id), do: Map.put(recipe, "published", true)
   defp set_published(recipe, _), do: recipe
+
+  defp handle_file_uploads(socket) do
+    consume_uploaded_entries(socket, :recipe_picture, fn %{path: path}, entry ->
+      conn = Supabase.Connection.new()
+
+      object_path = Path.join(socket.assigns.user["id"], entry.client_name)
+
+      {:ok, _} =
+        conn
+        |> Supabase.Storage.Objects.create("recipe-pictures", object_path, path,
+          content_type: entry.client_type
+        )
+        |> IO.inspect()
+
+      object_path
+    end)
+  end
 end

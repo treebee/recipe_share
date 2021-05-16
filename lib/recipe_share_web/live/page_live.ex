@@ -24,13 +24,21 @@ defmodule RecipeShareWeb.PageLive do
     socket =
       assign(socket, access_token: access_token)
       |> assign_page(params)
+      |> allow_uploads()
 
     {:ok, assign(socket, user: fetch_user(access_token))}
   end
 
   @impl true
   def mount(_params, _session, socket) do
-    {:ok, socket}
+    {:ok, allow_uploads(socket)}
+  end
+
+  defp allow_uploads(socket) do
+    allow_upload(socket, :recipe_picture,
+      accept: ~w(.jpeg .jpg .webp .png),
+      max_entries: 3
+    )
   end
 
   @impl true
@@ -119,7 +127,7 @@ defmodule RecipeShareWeb.PageLive do
         phx-value-key="error">{{ live_flash(@flash, :error) }}</p>
 
       <div>
-        <Page page={{ @page }} user={{ @user }} access_token={{ @access_token }} />
+        <Page page={{ @page }} user={{ @user }} access_token={{ @access_token }} opts={{ uploads: @uploads }} />
       </div>
     </main>
     """

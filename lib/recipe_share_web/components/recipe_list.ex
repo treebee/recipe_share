@@ -8,11 +8,20 @@ defmodule RecipeShareWeb.Components.RecipeList do
   def render(assigns) do
     ~H"""
     <div class="container mx-auto px-4">
-      <div :for={{ recipe <- @recipes }} class="flex justify-between p-2 rounded-md text-gray-800 bg-indigo-100 bg-opacity-50 my-2 border-indigo-200">
+      <div :for={{ recipe <- @recipes }} class="flex justify-between p-2 my-4 rounded-md text-gray-800 bg-indigo-100 bg-opacity-50 my-2 border-indigo-200">
         <span class="font-bold">
           {{ recipe["name"] }}
         </span>
-        <button :if={{ not is_nil(Map.get(@publish, :name)) and not recipe["published"] }} :on-click={{ @publish }} phx-value-id={{ recipe["id"] }}>publish</button>
+        <div>
+          <button
+            :if={{ not is_nil(Map.get(@publish, :name)) and not recipe["published"] }} :on-click={{ @publish }} phx-value-id={{ recipe["id"] }}
+            class="py-1 px-2 bg-blue-200"
+          >
+            publish
+          </button>
+          <button class="rounded-full p-2 mx-2">{{ Heroicons.Outline.pencil(class: "w-4 h-4")}} </button>
+          <button class="rounded-full p-2">{{ Heroicons.Outline.trash(class: "w-4 h-4")}} </button>
+        </div>
       </div>
     </div>
     """
