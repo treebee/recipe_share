@@ -3,6 +3,7 @@ defmodule RecipeShareWeb.Components.RecipeList do
 
   prop recipes, :list, default: []
   prop publish, :event, default: %{}
+  prop delete, :event
 
   @impl true
   def render(assigns) do
@@ -20,7 +21,12 @@ defmodule RecipeShareWeb.Components.RecipeList do
             publish
           </button>
           <button class="rounded-full p-2 mx-2">{{ Heroicons.Outline.pencil(class: "w-4 h-4")}} </button>
-          <button class="rounded-full p-2">{{ Heroicons.Outline.trash(class: "w-4 h-4")}} </button>
+          <button
+            class="rounded-full p-2"
+           :on-click={{ @delete }}
+           phx-value-id={{ recipe["id"] }}
+           data-confirm="Are you sure you want to delete this recipe ({{ recipe["name"] }})?"
+           >{{ Heroicons.Outline.trash(class: "w-4 h-4")}}</button>
         </div>
       </div>
     </div>

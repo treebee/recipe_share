@@ -49,7 +49,7 @@ defmodule RecipeShareWeb.RecipePage do
       <div :if={{ length(@recipes) > 0 }}>
         <h2 class="font-semibold text-xl text-center">Your Recipes</h2>
         <div class="rounded-md p-2 bg-indigo-200 my-4">
-          <RecipeList recipes={{ @recipes }} publish="publish-recipe" />
+          <RecipeList recipes={{ @recipes }} publish="publish-recipe" delete="delete-recipe" />
         </div>
       </div>
       <h2 :if={{ length(@recipes) == 0 }} class="font-semibold text-xl text-center">
@@ -144,6 +144,31 @@ defmodule RecipeShareWeb.RecipePage do
 
     recipes = socket.assigns.recipes |> Enum.map(&set_published(&1, String.to_integer(id)))
     {:noreply, assign(socket, :recipes, recipes)}
+  end
+
+  @impl true
+  def handle_event("delete-recipe", %{"id" => id}, socket) do
+    req =
+      Supabase.init(access_token: socket.assigns.access_token)
+      |> Postgrestex.from("recipes")
+      |> Postgrestex.delete("")
+      |> Postgrestex.eq("id", id)
+
+    socket =
+      case HTTPoison.delete(req.path, req.headers, params: req.params) do
+        %{status_code: 204} ->
+          recipes =
+            socket.assigns.recipes
+            |> Enum.filter(fn recipe -> recipe["id"] != String.to_integer(id) end)
+
+          assign(socket, recipes: recipes) |> put_flash(:info, "Successfully deleted recipe")
+
+        _ ->
+          put_flash(socket, :danger, "Something went wrong")
+      end
+
+    # TODO don't require redirect for flash message to show up
+    {:noreply, push_redirect(socket, to: "/recipes")}
   end
 
   @impl true
@@ -264,7 +289,6 @@ defmodule RecipeShareWeb.RecipePage do
         |> Supabase.Storage.Objects.create("recipe-pictures", object_path, path,
           content_type: entry.client_type
         )
-        |> IO.inspect()
 
       object_path
     end)
