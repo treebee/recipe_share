@@ -4,7 +4,6 @@ defmodule RecipeShare.Recipes do
   """
 
   import Ecto.Query, warn: false
-  alias RecipeShare.Repo
 
   alias RecipeShare.Recipes.Recipe
   alias RecipeShare.Recipes.Ingredient
@@ -18,8 +17,15 @@ defmodule RecipeShare.Recipes do
       [%Recipe{}, ...]
 
   """
-  def list_recipes do
-    Repo.all(Recipe)
+  def list_recipes(options \\ []) do
+    %{body: recipes} =
+      Supabase.init(options)
+      |> Postgrestex.from("recipes")
+      |> Postgrestex.is_("published", "true")
+      |> Postgrestex.call()
+      |> Supabase.json(keys: :atoms)
+
+    Enum.map(recipes, &Map.merge(%Recipe{}, &1))
   end
 
   @doc """
@@ -65,6 +71,7 @@ defmodule RecipeShare.Recipes do
         Map.values(Map.get(recipe_params, "ingredients", []))
       )
       |> Map.put("picture_urls", uploaded_files)
+      |> Map.put("cover_picture", generate_cover_url(uploaded_files))
 
     ch = change_recipe(%Recipe{}, recipe_params)
 
@@ -92,7 +99,7 @@ defmodule RecipeShare.Recipes do
   def update_recipe(recipe, attrs, uploaded_files, access_token) do
     now = DateTime.utc_now()
 
-    if length(uploaded_files) > 1 or recipe.changes != %{} do
+    if length(uploaded_files) > 0 or recipe.changes != %{} do
       params =
         attrs
         |> Map.to_list()
@@ -101,9 +108,11 @@ defmodule RecipeShare.Recipes do
 
       picture_urls = Enum.concat([recipe.data.picture_urls, uploaded_files])
 
-      params
-      |> Map.put("updated_at", now)
-      |> Map.put("picture_urls", picture_urls)
+      params =
+        params
+        |> Map.put("updated_at", now)
+        |> Map.put("picture_urls", picture_urls)
+        |> Map.put("cover_picture", generate_cover_url(uploaded_files))
 
       params =
         if Map.has_key?(recipe.changes, :ingredients),
@@ -162,5 +171,15 @@ defmodule RecipeShare.Recipes do
   """
   def change_recipe(%Recipe{} = recipe, attrs \\ %{}) do
     Recipe.changeset(recipe, attrs)
+  end
+
+  defp generate_cover_url([]), do: ""
+
+  defp generate_cover_url([cover | _picture_urls]) do
+    {:ok, %{"signedURL" => url}} =
+      Supabase.Connection.new()
+      |> Supabase.Storage.Objects.sign("recipe-pictures", cover, expires_in: 60 * 24 * 365)
+
+    url
   end
 end

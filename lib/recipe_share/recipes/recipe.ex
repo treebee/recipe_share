@@ -10,6 +10,7 @@ defmodule RecipeShare.Recipes.Recipe do
     field :published, :boolean, default: false
     field :tags, {:array, :string}
     field :user_id, Ecto.UUID
+    field :cover_picture, :string
 
     timestamps()
   end
