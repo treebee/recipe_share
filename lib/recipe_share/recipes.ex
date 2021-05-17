@@ -49,10 +49,37 @@ defmodule RecipeShare.Recipes do
       {:error, %Ecto.Changeset{}}
 
   """
-  def create_recipe(attrs \\ %{}) do
-    %Recipe{}
-    |> Recipe.changeset(attrs)
-    |> Repo.insert()
+  def create_recipe(recipe_params, uploaded_files, access_token, user_id) do
+    now = DateTime.utc_now()
+
+    recipe_params =
+      recipe_params
+      |> Map.put("inserted_at", now)
+      |> Map.put("updated_at", now)
+      |> Map.put("user_id", user_id)
+      |> Map.put(
+        "ingredients",
+        Map.values(Map.get(recipe_params, "ingredients", []))
+      )
+      |> Map.put("picture_urls", uploaded_files)
+
+    ch = change_recipe(%Recipe{}, recipe_params)
+
+    cond do
+      ch.valid? ->
+        %{body: [recipe], status: 201} =
+          Supabase.init(access_token: access_token)
+          |> Postgrestex.from("recipes")
+          |> Postgrestex.insert(recipe_params)
+          |> Postgrestex.update_headers(%{"Prefer" => "return=representation"})
+          |> Postgrestex.call()
+          |> Supabase.json()
+
+        {:ok, recipe}
+
+      true ->
+        {:error, ch}
+    end
   end
 
   @doc """
@@ -74,7 +101,7 @@ defmodule RecipeShare.Recipes do
   end
 
   @doc """
-  Deletes a recipe.
+  Deletes a recipe and returns it.
 
   ## Examples
 
@@ -85,8 +112,21 @@ defmodule RecipeShare.Recipes do
       {:error, %Ecto.Changeset{}}
 
   """
-  def delete_recipe(%Recipe{} = recipe) do
-    Repo.delete(recipe)
+  def delete_recipe(recipe_id, access_token) do
+    req =
+      Supabase.init(access_token: access_token)
+      |> Postgrestex.from("recipes")
+      |> Postgrestex.delete("")
+      |> Postgrestex.eq("id", recipe_id)
+      |> Postgrestex.update_headers(%{"Prefer" => "return=representation"})
+
+    case HTTPoison.delete(req.path, req.headers, params: req.params) |> Supabase.json() do
+      %{status: 200, body: [recipe]} ->
+        {:ok, recipe}
+
+      error ->
+        {:error, error}
+    end
   end
 
   @doc """

@@ -158,21 +158,13 @@ defmodule RecipeShareWeb.RecipePage do
 
   @impl true
   def handle_event("delete-recipe", %{"id" => id}, socket) do
-    req =
-      Supabase.init(access_token: socket.assigns.access_token)
-      |> Postgrestex.from("recipes")
-      |> Postgrestex.delete("")
-      |> Postgrestex.eq("id", id)
-      |> Postgrestex.update_headers(%{"Prefer" => "return=representation"})
-
-    # TODO use Postgrestex.delete() once fixed release available
     socket =
-      case HTTPoison.delete(req.path, req.headers, params: req.params) |> Supabase.json() do
-        %{status: 200, body: [recipe]} ->
+      case Recipes.delete_recipe(id, socket.assigns.access_token) do
+        {:ok, recipe} ->
           update(socket, :recipes, fn recipes -> [Map.put(recipe, "deleted", true) | recipes] end)
           |> put_flash(:info, "Successfully deleted recipe")
 
-        error ->
+        {:error, _error} ->
           put_flash(socket, :danger, "Something went wrong")
       end
 
@@ -193,31 +185,13 @@ defmodule RecipeShareWeb.RecipePage do
   def handle_event("save", %{"recipe" => recipe_params}, socket) do
     uploaded_files = handle_file_uploads(socket)
 
-    now = DateTime.utc_now()
-
-    recipe_params =
-      recipe_params
-      |> Map.put("inserted_at", now)
-      |> Map.put("updated_at", now)
-      |> Map.put("user_id", socket.assigns.user["id"])
-      |> Map.put(
-        "ingredients",
-        Map.values(Map.get(recipe_params, "ingredients", %{}))
-      )
-      |> Map.put("picture_urls", uploaded_files)
-
-    ch = Recipes.change_recipe(get_recipe("new"), recipe_params)
-
-    cond do
-      ch.valid? ->
-        %{body: [recipe], status: 201} =
-          Supabase.init(access_token: socket.assigns.access_token)
-          |> Postgrestex.from("recipes")
-          |> Postgrestex.insert(recipe_params)
-          |> Postgrestex.update_headers(%{"Prefer" => "return=representation"})
-          |> Postgrestex.call()
-          |> Supabase.json()
-
+    case Recipes.create_recipe(
+           recipe_params,
+           uploaded_files,
+           socket.assigns.access_token,
+           socket.assigns.user["id"]
+         ) do
+      {:ok, recipe} ->
         Modal.close("recipe-modal")
 
         {:noreply,
@@ -225,7 +199,7 @@ defmodule RecipeShareWeb.RecipePage do
          |> update(:recipes, fn recipes -> [recipe | recipes] end)
          |> push_patch(to: "/recipes")}
 
-      true ->
+      {:error, ch} ->
         {:noreply, assign(socket, :changeset, ch)}
     end
   end
