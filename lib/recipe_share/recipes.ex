@@ -7,6 +7,7 @@ defmodule RecipeShare.Recipes do
   alias RecipeShare.Repo
 
   alias RecipeShare.Recipes.Recipe
+  alias RecipeShare.Recipes.Ingredient
 
   @doc """
   Returns the list of recipes.
@@ -24,18 +25,20 @@ defmodule RecipeShare.Recipes do
   @doc """
   Gets a single recipe.
 
-  Raises `Ecto.NoResultsError` if the Recipe does not exist.
-
-  ## Examples
-
-      iex> get_recipe!(123)
-      %Recipe{}
-
-      iex> get_recipe!(456)
-      ** (Ecto.NoResultsError)
-
   """
-  def get_recipe!(id), do: Repo.get!(Recipe, id)
+  def get_recipe!(id, access_token) do
+    %{status: 200, body: [recipe]} =
+      Supabase.init(access_token: access_token)
+      |> Postgrestex.from("recipes")
+      |> Postgrestex.eq("id", id)
+      |> Postgrestex.call()
+      |> Supabase.json(keys: :atoms)
+
+    Map.merge(%Recipe{}, recipe)
+    |> Map.update(:ingredients, [], fn ingredients ->
+      Enum.map(ingredients, &Map.merge(%Ingredient{}, &1))
+    end)
+  end
 
   @doc """
   Creates a recipe.
@@ -85,19 +88,38 @@ defmodule RecipeShare.Recipes do
   @doc """
   Updates a recipe.
 
-  ## Examples
-
-      iex> update_recipe(recipe, %{field: new_value})
-      {:ok, %Recipe{}}
-
-      iex> update_recipe(recipe, %{field: bad_value})
-      {:error, %Ecto.Changeset{}}
-
   """
-  def update_recipe(%Recipe{} = recipe, attrs) do
-    recipe
-    |> Recipe.changeset(attrs)
-    |> Repo.update()
+  def update_recipe(recipe, attrs, uploaded_files, access_token) do
+    now = DateTime.utc_now()
+
+    if length(uploaded_files) > 1 or recipe.changes != %{} do
+      params =
+        attrs
+        |> Map.to_list()
+        |> Enum.filter(fn {key, _v} -> Map.has_key?(recipe.changes, String.to_atom(key)) end)
+        |> Map.new()
+
+      picture_urls = Enum.concat([recipe.data.picture_urls, uploaded_files])
+
+      params
+      |> Map.put("updated_at", now)
+      |> Map.put("picture_urls", picture_urls)
+
+      params =
+        if Map.has_key?(recipe.changes, :ingredients),
+          do: Map.put(params, "ingredients", Map.values(Map.get(params, "ingredients"))),
+          else: params
+
+      %{status: 200, body: [recipe]} =
+        Supabase.init(access_token: access_token)
+        |> Postgrestex.from("recipes")
+        |> Postgrestex.update(params)
+        |> Postgrestex.eq("id", Integer.to_string(recipe.data.id))
+        |> Postgrestex.call()
+        |> Supabase.json()
+
+      {:ok, recipe}
+    end
   end
 
   @doc """

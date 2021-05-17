@@ -8,15 +8,17 @@ defmodule RecipeShare.Recipes.Ingredient do
   # quantity: "300g"
   # name: "Broccoli"
   # -> 300g Broccoli
+  @primary_key false
   embedded_schema do
-    field :name, :string
+    field :name, :string, primary_key: true
     field :quantity, :string
+    field :delete, :boolean, virtual: true, default: false
   end
 
   @doc false
   def changeset(%__MODULE__{} = ingredient, attrs) do
     ingredient
-    |> cast(attrs, [:quantity, :name])
+    |> cast(attrs, [:quantity, :name, :delete])
     |> validate_required([:quantity, :name])
   end
 

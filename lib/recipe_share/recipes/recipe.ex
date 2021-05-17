@@ -3,13 +3,13 @@ defmodule RecipeShare.Recipes.Recipe do
   import Ecto.Changeset
 
   schema "recipes" do
-    embeds_many :ingredients, RecipeShare.Recipes.Ingredient
+    embeds_many :ingredients, RecipeShare.Recipes.Ingredient, on_replace: :delete
     field :name, :string
     field :description, :string
     field :picture_urls, {:array, :string}
     field :published, :boolean, default: false
     field :tags, {:array, :string}
-    field :user_id, :id
+    field :user_id, Ecto.UUID
 
     timestamps()
   end

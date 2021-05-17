@@ -57,7 +57,7 @@ defmodule RecipeShareWeb.Components.Modal do
         >
           <div class="modal-content bg-white">
             <div
-              class="inline-block align-botto text-left overflow-hidden transform transition-all sm:align-middle sm:w-full bg-blue-700 text-white"
+              class="inline-block align-botto text-left overflow-hidden transform transition-all align-middle w-full bg-blue-700 text-white"
               role="dialog"
               aria-modal="true"
               aria-labelledby="modal-headline"

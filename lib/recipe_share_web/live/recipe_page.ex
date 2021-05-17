@@ -44,7 +44,7 @@ defmodule RecipeShareWeb.RecipePage do
       >
         <button
           type="button"
-          class="rounded-md p-2 bg-green-500 flex items-center"
+          class="rounded-md p-2 bg-green-500 hover:bg-green-600 active:bg-green-700 flex items-center"
           :on-click="open"
           phx-value-action={{ :new }}
         >
@@ -53,12 +53,13 @@ defmodule RecipeShareWeb.RecipePage do
       </div>
       <div :if={{ length(@recipes) > 0 }}>
         <h2 class="font-semibold text-xl text-center">Your Recipes</h2>
-        <div class="rounded-md p-2 my-4">
+        <div class="rounded-md py-2 my-4">
           <RecipeList
             id="recipe-list"
             recipes={{ @recipes }}
             publish="publish-recipe"
             delete="delete-recipe"
+            edit="open"
           />
         </div>
       </div>
@@ -82,7 +83,7 @@ defmodule RecipeShareWeb.RecipePage do
             </div>
           </Field>
           <Label class="font-semibold text-md mb-4">Ingredients</Label>
-          <Inputs for={{ :ingredients }} :let={{ form: f, index: idx }} opts={{append: [%{}]}}>
+          <Inputs for={{ :ingredients }} :let={{ form: f, index: idx }}>
             <div class="flex w-full my-4 items-center">
               <Field name={{ :quantity }} class="flex-grow">
                   <TextInput form={{ f }} field={{ :quantity }} opts={{ placeholder: "quantity", phx_input: "blur"}}
@@ -92,7 +93,7 @@ defmodule RecipeShareWeb.RecipePage do
                   <TextInput form={{ f }} field={{ :name }} opts={{ placeholder: "name"}}
                   class=" font-semibold text-md border border-gray-400 rounded-md p-2 mx-2"/>
               </Field>
-              <button type="button" :if={{ num_ingredients(@changeset) > 1}} :on-click="remove-ingredient" phx-value-id={{ idx }}>
+              <button type="button" :on-click="remove-ingredient" phx-value-id={{ idx }}>
                 {{ Heroicons.Solid.trash(class: "w-4 h-4") }}
               </button>
             </div>
@@ -182,7 +183,37 @@ defmodule RecipeShareWeb.RecipePage do
   end
 
   @impl true
-  def handle_event("save", %{"recipe" => recipe_params}, socket) do
+  def handle_event("save", %{"recipe" => recipe_params}, %{assigns: %{action: :edit}} = socket) do
+    socket =
+      if socket.assigns.changeset.valid? do
+        uploaded_files = handle_file_uploads(socket)
+
+        case Recipes.update_recipe(
+               socket.assigns.changeset,
+               recipe_params,
+               uploaded_files,
+               socket.assigns.access_token
+             ) do
+          {:ok, recipe} ->
+            update(socket, :recipes, fn recipes -> [recipe | recipes] end)
+            |> push_patch(to: "/recipes")
+
+            Modal.close("recipe-modal")
+
+            put_flash(socket, :info, "Recipe updated successfully")
+            |> update(:recipes, fn recipes -> [recipe | recipes] end)
+            |> push_patch(to: "/recipes")
+
+          error ->
+            socket
+        end
+      end
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("save", %{"recipe" => recipe_params}, %{assigns: %{action: :new}} = socket) do
     uploaded_files = handle_file_uploads(socket)
 
     case Recipes.create_recipe(
@@ -207,10 +238,14 @@ defmodule RecipeShareWeb.RecipePage do
   @impl true
   def handle_event("remove-ingredient", %{"id" => idx}, socket) do
     ingredients =
-      Map.get(socket.assigns.changeset.changes, :ingredients, [])
+      (Map.get(socket.assigns.changeset.data, :ingredients, []) ++
+         Map.get(socket.assigns.changeset.changes, :ingredients, []))
       |> List.delete_at(String.to_integer(idx))
+      |> Enum.map(&Map.merge(%Ingredient{}, &1))
 
-    changeset = socket.assigns.changeset |> Ecto.Changeset.put_embed(:ingredients, ingredients)
+    changeset =
+      socket.assigns.changeset
+      |> Ecto.Changeset.put_embed(:ingredients, ingredients)
 
     {:noreply, assign(socket, changeset: changeset)}
   end
@@ -218,16 +253,30 @@ defmodule RecipeShareWeb.RecipePage do
   @impl true
   def handle_event("add_ingredient", _values, socket) do
     existing_ingredients =
-      Map.get(socket.assigns.changeset.changes, :ingredients, socket.assigns.recipe.ingredients)
+      Map.get(
+        socket.assigns.changeset.changes,
+        :ingredients,
+        Enum.map(socket.assigns.recipe.ingredients, &Map.merge(%Ingredient{}, &1))
+      )
 
     ingredients =
       existing_ingredients
       |> Enum.concat([
-        Ingredient.changeset(%{}, %{})
+        %Ingredient{}
       ])
 
     changeset = socket.assigns.changeset |> Ecto.Changeset.put_embed(:ingredients, ingredients)
     {:noreply, assign(socket, changeset: changeset)}
+  end
+
+  @impl true
+  def handle_event("open", %{"action" => "edit", "id" => id}, socket) do
+    Modal.open("recipe-modal")
+    recipe = Recipes.get_recipe!(id, socket.assigns.access_token)
+    changeset = Recipe.changeset(recipe, %{})
+
+    {:noreply,
+     assign(socket, recipe: recipe, changeset: changeset, show_modal: true, action: :edit)}
   end
 
   @impl true
@@ -254,14 +303,10 @@ defmodule RecipeShareWeb.RecipePage do
   defp error_to_string(:too_large), do: "Too large"
   defp error_to_string(:too_many_files), do: "You have selected too many files"
   defp error_to_string(:not_accepted), do: "You have selected an unacceptable file type"
-  def get_recipe("new"), do: %Recipe{ingredients: []}
+  def get_recipe("new"), do: %Recipe{}
 
   defp modal_title(:new), do: "Create a new Recipe"
   defp modal_title(:edit), do: "Edit Recipe"
-
-  defp num_ingredients(changeset) do
-    length(changeset.data.ingredients) + length(Map.get(changeset.changes, :ingredients, []))
-  end
 
   defp set_published(%{"id" => id} = recipe, id), do: Map.put(recipe, "published", true)
   defp set_published(recipe, _), do: recipe
