@@ -1,5 +1,5 @@
 defmodule RecipeShareWeb.Components.RecipeList do
-  use RecipeShareWeb, :surface_component
+  use RecipeShareWeb, :surface_live_component
 
   prop recipes, :list, default: []
   prop publish, :event, default: %{}
@@ -8,10 +8,14 @@ defmodule RecipeShareWeb.Components.RecipeList do
   @impl true
   def render(assigns) do
     ~H"""
-    <div class="container mx-auto px-4">
-      <div :for={{ recipe <- @recipes }} class="flex justify-between p-2 my-4 rounded-md text-gray-800 bg-indigo-100 bg-opacity-50 my-2 border-indigo-200">
+    <div id={{ @id }} phx-update="append" class="container mx-auto px-4">
+      <div
+        :for={{ recipe <- @recipes }}
+        id={{ "recipe-#{recipe["id"]}"}}
+        class={{ "flex justify-between p-2 my-4 rounded-md text-gray-800 bg-indigo-100 bg-opacity-50 my-2 border border-indigo-200", hidden: Map.get(recipe, "deleted", false) }}
+        >
         <span class="font-bold">
-          {{ recipe["name"] }}
+          {{ recipe["name"] }}  {{ Map.get(recipe, "deleted", false)}}
         </span>
         <div>
           <button

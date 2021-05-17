@@ -49,6 +49,7 @@ defmodule RecipeShare.MixProject do
       {:plug_cowboy, "~> 2.0"},
       {:surface, "~> 0.4.0"},
       {:surface_catalogue, "~> 0.0.8", only: [:dev, :test]},
+      {:supabase, path: "../supabase-elixir", override: true},
       # github: "treebee/supabase-surface"},
       {:supabase_surface, path: "../supabase_surface"},
       {:joken, "~> 2.0"}

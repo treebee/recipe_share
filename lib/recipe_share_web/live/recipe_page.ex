@@ -21,6 +21,11 @@ defmodule RecipeShareWeb.RecipePage do
   prop user, :map, required: true
 
   @impl true
+  def mount(socket) do
+    {:ok, socket, temporary_assigns: [recipes: []]}
+  end
+
+  @impl true
   def update(assigns, socket) do
     socket =
       assign(socket,
@@ -48,8 +53,13 @@ defmodule RecipeShareWeb.RecipePage do
       </div>
       <div :if={{ length(@recipes) > 0 }}>
         <h2 class="font-semibold text-xl text-center">Your Recipes</h2>
-        <div class="rounded-md p-2 bg-indigo-200 my-4">
-          <RecipeList recipes={{ @recipes }} publish="publish-recipe" delete="delete-recipe" />
+        <div class="rounded-md p-2 my-4">
+          <RecipeList
+            id="recipe-list"
+            recipes={{ @recipes }}
+            publish="publish-recipe"
+            delete="delete-recipe"
+          />
         </div>
       </div>
       <h2 :if={{ length(@recipes) == 0 }} class="font-semibold text-xl text-center">
@@ -153,22 +163,20 @@ defmodule RecipeShareWeb.RecipePage do
       |> Postgrestex.from("recipes")
       |> Postgrestex.delete("")
       |> Postgrestex.eq("id", id)
+      |> Postgrestex.update_headers(%{"Prefer" => "return=representation"})
 
+    # TODO use Postgrestex.delete() once fixed release available
     socket =
-      case HTTPoison.delete(req.path, req.headers, params: req.params) do
-        %{status_code: 204} ->
-          recipes =
-            socket.assigns.recipes
-            |> Enum.filter(fn recipe -> recipe["id"] != String.to_integer(id) end)
+      case HTTPoison.delete(req.path, req.headers, params: req.params) |> Supabase.json() do
+        %{status: 200, body: [recipe]} ->
+          update(socket, :recipes, fn recipes -> [Map.put(recipe, "deleted", true) | recipes] end)
+          |> put_flash(:info, "Successfully deleted recipe")
 
-          assign(socket, recipes: recipes) |> put_flash(:info, "Successfully deleted recipe")
-
-        _ ->
+        error ->
           put_flash(socket, :danger, "Something went wrong")
       end
 
-    # TODO don't require redirect for flash message to show up
-    {:noreply, push_redirect(socket, to: "/recipes")}
+    {:noreply, push_patch(socket, to: "/recipes")}
   end
 
   @impl true
@@ -202,14 +210,20 @@ defmodule RecipeShareWeb.RecipePage do
 
     cond do
       ch.valid? ->
-        Supabase.init(access_token: socket.assigns.access_token)
-        |> Postgrestex.from("recipes")
-        |> Postgrestex.insert(recipe_params)
-        |> Postgrestex.call()
-        |> Supabase.json()
+        %{body: [recipe], status: 201} =
+          Supabase.init(access_token: socket.assigns.access_token)
+          |> Postgrestex.from("recipes")
+          |> Postgrestex.insert(recipe_params)
+          |> Postgrestex.update_headers(%{"Prefer" => "return=representation"})
+          |> Postgrestex.call()
+          |> Supabase.json()
+
+        Modal.close("recipe-modal")
 
         {:noreply,
-         put_flash(socket, :info, "Recipe created successfully") |> push_redirect(to: "/recipes")}
+         put_flash(socket, :info, "Recipe created successfully")
+         |> update(:recipes, fn recipes -> [recipe | recipes] end)
+         |> push_patch(to: "/recipes")}
 
       true ->
         {:noreply, assign(socket, :changeset, ch)}
