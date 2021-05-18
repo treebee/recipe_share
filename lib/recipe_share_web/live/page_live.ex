@@ -9,8 +9,9 @@ defmodule RecipeShareWeb.PageLive do
   alias Surface.Components.LiveRedirect
 
   @default_pages [
-    %{name: "index", module: RecipeShareWeb.IndexPage, icon: "view-grid"},
-    %{name: "recipes", module: RecipeShareWeb.RecipePage, icon: "view-grid"}
+    %{name: "index", module: RecipeShareWeb.IndexPage},
+    %{name: "recipes", module: RecipeShareWeb.RecipePage},
+    %{name: "users", module: RecipeShareWeb.UserManagementPage}
   ]
 
   data page, :string, default: "index"
@@ -107,6 +108,13 @@ defmodule RecipeShareWeb.PageLive do
                 <LivePatch
                   :if={{ not is_nil(@access_token) }}
                   class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" opts={{ role: "menuitem" }}
+                  to={{ Routes.page_path(@socket, :index, "users") }}
+                >Users</LivePatch>
+
+
+                <LivePatch
+                  :if={{ not is_nil(@access_token) }}
+                  class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100" opts={{ role: "menuitem" }}
                   to={{ Routes.page_path(@socket, :index, "recipes") }}
                 >Your Recipes</LivePatch>
 
@@ -138,10 +146,16 @@ defmodule RecipeShareWeb.PageLive do
   @impl true
   def handle_info({:ensure_defaults, access_token, user}, socket) do
     username = Map.get(user, "user_metadata", %{}) |> Map.get("full_name")
+    avatar_url = Map.get(user, "user_metadata", %{}) |> Map.get("avatar_url")
 
     if is_nil(Accounts.get_profile!(access_token, user["id"])) do
       {:ok, _profile} =
-        Accounts.create_profile(%{"username" => username, "id" => user["id"]}, access_token)
+        Accounts.create_profile(
+          %{"username" => username, "id" => user["id"], "avatar_url" => avatar_url},
+          access_token
+        )
+    else
+      Accounts.update_profile(access_token, user["id"], %{"avatar_url" => avatar_url})
     end
 
     socket =
