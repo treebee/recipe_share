@@ -112,11 +112,12 @@ defmodule RecipeShare.Recipes do
         params
         |> Map.put("updated_at", now)
         |> Map.put("picture_urls", picture_urls)
-        |> Map.put("cover_picture", generate_cover_url(uploaded_files))
+        |> Map.put("cover_picture", generate_cover_url(picture_urls))
+        |> Map.put("ingredients", process_ingredients(params))
 
       params =
         if Map.has_key?(recipe.changes, :ingredients),
-          do: Map.put(params, "ingredients", Map.values(Map.get(params, "ingredients"))),
+          do: Map.put(params, "ingredients", Map.get(params, "ingredients")),
           else: params
 
       %{status: 200, body: [recipe]} =
@@ -130,6 +131,14 @@ defmodule RecipeShare.Recipes do
       {:ok, recipe}
     end
   end
+
+  defp process_ingredients(%{"ingredients" => ingredients}) do
+    ingredients
+    |> Map.values()
+    |> Enum.filter(fn ingredient -> ingredient["delete"] != "true" end)
+  end
+
+  defp process_ingredients(_), do: []
 
   @doc """
   Deletes a recipe and returns it.
@@ -147,7 +156,7 @@ defmodule RecipeShare.Recipes do
     req =
       Supabase.init(access_token: access_token)
       |> Postgrestex.from("recipes")
-      |> Postgrestex.delete("")
+      |> Postgrestex.delete(%{})
       |> Postgrestex.eq("id", recipe_id)
       |> Postgrestex.update_headers(%{"Prefer" => "return=representation"})
 

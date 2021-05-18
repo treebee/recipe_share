@@ -13,17 +13,19 @@ defmodule RecipeShare.Recipes.Ingredient do
     field :name, :string, primary_key: true
     field :quantity, :string
     field :delete, :boolean, virtual: true, default: false
+    field :temp_id, :string, virtual: true
   end
 
   @doc false
   def changeset(%__MODULE__{} = ingredient, attrs) do
     ingredient
-    |> cast(attrs, [:quantity, :name, :delete])
+    |> Map.put(:temp_id, ingredient.temp_id || attrs["temp_id"])
+    |> cast(attrs, [:quantity, :name, :delete, :temp_id])
     |> validate_required([:quantity, :name])
   end
 
-  def changeset(%{quantity: quantity, name: name}, attrs) do
-    %__MODULE__{quantity: quantity, name: name}
+  def changeset(%{quantity: quantity, name: name, delete: delete, temp_id: temp_id}, attrs) do
+    %__MODULE__{quantity: quantity, name: name, delete: delete, temp_id: temp_id}
     |> changeset(attrs)
   end
 

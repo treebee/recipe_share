@@ -2,7 +2,7 @@ defmodule RecipeShareWeb.RecipePage do
   use RecipeShareWeb, :surface_live_component
 
   alias Surface.Components.Form
-  alias Surface.Components.Form.{Field, TextInput, Label, Inputs, Checkbox, TextArea}
+  alias Surface.Components.Form.{Field, TextInput, Label, Inputs, Checkbox, TextArea, HiddenInput}
   alias Surface.Components.LiveFileInput
   alias RecipeShare.Recipes.{Recipe, Ingredient}
   alias RecipeShare.Recipes
@@ -83,7 +83,8 @@ defmodule RecipeShareWeb.RecipePage do
             </div>
           </Field>
           <Label class="font-semibold text-md mb-4">Ingredients</Label>
-          <Inputs for={{ :ingredients }} :let={{ form: f, index: idx }}>
+
+          <Inputs for={{ :ingredients }} :let={{ form: f }}>
             <div class="flex w-full my-4 items-center">
               <Field name={{ :quantity }} class="flex-grow">
                   <TextInput form={{ f }} field={{ :quantity }} opts={{ placeholder: "quantity", phx_input: "blur"}}
@@ -93,9 +94,15 @@ defmodule RecipeShareWeb.RecipePage do
                   <TextInput form={{ f }} field={{ :name }} opts={{ placeholder: "name"}}
                   class=" font-semibold text-md border border-gray-400 rounded-md p-2 mx-2"/>
               </Field>
-              <button type="button" :on-click="remove-ingredient" phx-value-id={{ idx }}>
+              <Field :if={{ temp_ingredient?(f) }} name={{ :temp_id }}>
+                <HiddenInput form={{ f }} />
+              </Field>
+              <button :if={{ temp_ingredient?(f) }} type="button" :on-click="remove-ingredient" phx-value-id={{ Map.get(f.data, :temp_id, Map.get(Map.get(f, :changes, %{}), :temp_id)) }}>
                 {{ Heroicons.Solid.trash(class: "w-4 h-4") }}
               </button>
+              <Field :if={{ not temp_ingredient?(f) }} name={{ :delete }} class="block">
+                <Checkbox form={{ f }}/>
+              </Field>
             </div>
           </Inputs>
           <div>
@@ -236,33 +243,27 @@ defmodule RecipeShareWeb.RecipePage do
   end
 
   @impl true
-  def handle_event("remove-ingredient", %{"id" => idx}, socket) do
+  def handle_event("remove-ingredient", %{"id" => id}, socket) do
     ingredients =
-      (Map.get(socket.assigns.changeset.data, :ingredients, []) ++
-         Map.get(socket.assigns.changeset.changes, :ingredients, []))
-      |> List.delete_at(String.to_integer(idx))
-      |> Enum.map(&Map.merge(%Ingredient{}, &1))
+      socket.assigns.changeset.changes.ingredients
+      |> Enum.reject(fn %{data: ingredient} -> Map.get(ingredient, :temp_id) == id end)
 
     changeset =
       socket.assigns.changeset
       |> Ecto.Changeset.put_embed(:ingredients, ingredients)
 
-    {:noreply, assign(socket, changeset: changeset)}
+    {:noreply, assign(socket, changeset: changeset, ingredients: ingredients)}
   end
 
   @impl true
   def handle_event("add_ingredient", _values, socket) do
     existing_ingredients =
-      Map.get(
-        socket.assigns.changeset.changes,
-        :ingredients,
-        Enum.map(socket.assigns.recipe.ingredients, &Map.merge(%Ingredient{}, &1))
-      )
+      Map.get(socket.assigns.changeset.changes, :ingredients, socket.assigns.recipe.ingredients)
 
     ingredients =
       existing_ingredients
       |> Enum.concat([
-        %Ingredient{}
+        Ingredient.changeset(%Ingredient{temp_id: get_temp_id()}, %{})
       ])
 
     changeset = socket.assigns.changeset |> Ecto.Changeset.put_embed(:ingredients, ingredients)
@@ -273,10 +274,16 @@ defmodule RecipeShareWeb.RecipePage do
   def handle_event("open", %{"action" => "edit", "id" => id}, socket) do
     Modal.open("recipe-modal")
     recipe = Recipes.get_recipe!(id, socket.assigns.access_token)
+
     changeset = Recipe.changeset(recipe, %{})
 
     {:noreply,
-     assign(socket, recipe: recipe, changeset: changeset, show_modal: true, action: :edit)}
+     assign(socket,
+       recipe: recipe,
+       changeset: changeset,
+       show_modal: true,
+       action: :edit
+     )}
   end
 
   @impl true
@@ -325,5 +332,13 @@ defmodule RecipeShareWeb.RecipePage do
 
       object_path
     end)
+  end
+
+  defp get_temp_id(),
+    do: :crypto.strong_rand_bytes(5) |> Base.url_encode64() |> binary_part(0, 5)
+
+  defp temp_ingredient?(f) do
+    not (is_nil(Map.get(f.data, :temp_id)) and
+           is_nil(Map.get(Map.get(f, :changes, %{}), :temp_id)))
   end
 end
