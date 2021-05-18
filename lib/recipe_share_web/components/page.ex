@@ -15,7 +15,7 @@ defmodule RecipeShareWeb.Components.Page do
     ~H"""
     <IndexPage :if={{ @page == "index" }} id="index-page" />
     <RecipePage :if={{ @page == "recipes" }} user={{ @user }} access_token={{ @access_token }} uploads={{ Keyword.get(@opts, :uploads, %{}) }} id="recipes-page" />
-    <UserManagementPage :if={{ @page == "users" }} id="users-page" access_token={{ @access_token }} />
+    <UserManagementPage :if={{ @page == "users" }} id="users-page" access_token={{ @access_token }} user={{ @user }} />
     """
   end
 end

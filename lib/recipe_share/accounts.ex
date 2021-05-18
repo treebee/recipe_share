@@ -5,6 +5,20 @@ defmodule RecipeShare.Accounts do
 
   import Ecto.Query, warn: false
 
+  def get_user!(access_token, user_id) do
+    %{body: users} =
+      Supabase.init(access_token: access_token)
+      |> Postgrestex.from("user_roles")
+      |> Postgrestex.select(["roles:role_id(id,name), profile:user_id(id,username,avatar_url)"])
+      |> Postgrestex.eq("user_id", user_id)
+      |> Postgrestex.call()
+      |> Supabase.json(keys: :atoms)
+
+    users
+    |> Enum.map(&transform_user_response/1)
+    |> List.first()
+  end
+
   @doc """
   Returns the list of users.
 
@@ -18,7 +32,7 @@ defmodule RecipeShare.Accounts do
     %{body: users} =
       Supabase.init(access_token: access_token)
       |> Postgrestex.from("user_roles")
-      |> Postgrestex.select(["roles:role_id(name), profile:user_id(id,username,avatar_url)"])
+      |> Postgrestex.select(["roles:role_id(id,name), profile:user_id(id,username,avatar_url)"])
       |> Postgrestex.call()
       |> Supabase.json(keys: :atoms)
 
@@ -26,8 +40,8 @@ defmodule RecipeShare.Accounts do
     |> Enum.map(&transform_user_response/1)
   end
 
-  defp transform_user_response(%{roles: %{name: role_name}, profile: user}) do
-    Map.put(user, :role, role_name)
+  defp transform_user_response(%{roles: %{id: role_id, name: role_name}, profile: user}) do
+    Map.put(user, :role, role_name) |> Map.put(:role_id, role_id)
   end
 
   @doc """
@@ -83,11 +97,11 @@ defmodule RecipeShare.Accounts do
   def get_role!(access_token, user_id) do
     case Supabase.init(access_token: access_token)
          |> Postgrestex.from("user_roles")
-         |> update_in([:params], fn params -> [{:select, "roles(name)"} | params] end)
+         |> update_in([:params], fn params -> [{:select, "roles(id,name)"} | params] end)
          |> Postgrestex.eq("user_id", user_id)
          |> Postgrestex.call()
          |> Supabase.json(keys: :atoms) do
-      %{body: [%{roles: %{name: role}}]} -> role
+      %{body: [%{roles: role}]} -> role
       %{body: []} -> nil
     end
   end
@@ -115,5 +129,14 @@ defmodule RecipeShare.Accounts do
       |> Supabase.json(keys: :atoms)
 
     user_role
+  end
+
+  def update_user_role(access_token, user_id, role_id) do
+    %{status_code: 200} =
+      Supabase.init(access_token: access_token)
+      |> Postgrestex.from("user_roles")
+      |> Postgrestex.update(%{"role_id" => role_id})
+      |> Postgrestex.eq("user_id", user_id)
+      |> Postgrestex.call()
   end
 end

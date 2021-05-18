@@ -165,7 +165,7 @@ defmodule RecipeShareWeb.PageLive do
           assign(socket, user_role: "user")
 
         role ->
-          assign(socket, user_role: role)
+          assign(socket, user_role: role.name)
       end
 
     {:noreply, socket}
