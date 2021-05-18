@@ -17,8 +17,7 @@ defmodule RecipeShare.Accounts do
       [%Profile{}, ...]
 
   """
-  def list_profiles do
-    Repo.all(Profile)
+  def list_profiles() do
   end
 
   @doc """
@@ -58,50 +57,29 @@ defmodule RecipeShare.Accounts do
     {:ok, profile}
   end
 
-  @doc """
-  Updates a profile.
-
-  ## Examples
-
-      iex> update_profile(profile, %{field: new_value})
-      {:ok, %Profile{}}
-
-      iex> update_profile(profile, %{field: bad_value})
-      {:error, %Ecto.Changeset{}}
-
-  """
-  def update_profile(%Profile{} = profile, attrs) do
-    profile
-    |> Profile.changeset(attrs)
-    |> Repo.update()
+  def get_role!(access_token, user_id) do
+    case Supabase.init(access_token: access_token)
+         |> Postgrestex.from("user_roles")
+         |> update_in([:params], fn params -> [{:select, "roles(name)"} | params] end)
+         |> Postgrestex.eq("user_id", user_id)
+         |> Postgrestex.call()
+         |> Supabase.json(keys: :atoms) do
+      %{body: [%{roles: %{name: role}}]} -> role
+      %{body: []} -> nil
+    end
   end
 
-  @doc """
-  Deletes a profile.
+  def create_user_role(access_token, user_id, role \\ "user") do
+    role = get_role!(access_token, role)
 
-  ## Examples
+    %{status: 201, body: [user_role]} =
+      Supabase.init(access_token: access_token)
+      |> Postgrestex.from("user_roles")
+      |> Postgrestex.insert(%{"user_id" => user_id, "role_id" => role.id})
+      |> Postgrestex.update_headers(%{"Prefer" => "return=representation"})
+      |> Postgrestex.call()
+      |> Supabase.json(keys: :atoms)
 
-      iex> delete_profile(profile)
-      {:ok, %Profile{}}
-
-      iex> delete_profile(profile)
-      {:error, %Ecto.Changeset{}}
-
-  """
-  def delete_profile(%Profile{} = profile) do
-    Repo.delete(profile)
-  end
-
-  @doc """
-  Returns an `%Ecto.Changeset{}` for tracking profile changes.
-
-  ## Examples
-
-      iex> change_profile(profile)
-      %Ecto.Changeset{data: %Profile{}}
-
-  """
-  def change_profile(%Profile{} = profile, attrs \\ %{}) do
-    Profile.changeset(profile, attrs)
+    user_role
   end
 end

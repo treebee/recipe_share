@@ -20,14 +20,15 @@ defmodule RecipeShareWeb.PageLive do
 
   @impl true
   def mount(params, %{"access_token" => access_token}, socket) do
-    send(self(), {:ensure_profile, access_token})
+    user = fetch_user(access_token)
+    send(self(), {:ensure_defaults, access_token, user})
 
     socket =
       assign(socket, access_token: access_token)
       |> assign_page(params)
       |> allow_uploads()
 
-    {:ok, assign(socket, user: fetch_user(access_token))}
+    {:ok, assign(socket, user: user)}
   end
 
   @impl true
@@ -135,15 +136,23 @@ defmodule RecipeShareWeb.PageLive do
   end
 
   @impl true
-  def handle_info({:ensure_profile, access_token}, socket) do
-    user = fetch_user(access_token)
-
+  def handle_info({:ensure_defaults, access_token, user}, socket) do
     username = Map.get(user, "user_metadata", %{}) |> Map.get("full_name")
 
     if is_nil(Accounts.get_profile!(access_token, user["id"])) do
       {:ok, _profile} =
         Accounts.create_profile(%{"username" => username, "id" => user["id"]}, access_token)
     end
+
+    socket =
+      case Accounts.get_role!(access_token, user["id"]) do
+        nil ->
+          {:ok, _user_role} = Accounts.create_user_role(access_token, user["id"])
+          assign(socket, user_role: "user")
+
+        role ->
+          assign(socket, user_role: role)
+      end
 
     {:noreply, socket}
   end
