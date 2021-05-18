@@ -24,18 +24,18 @@ defmodule RecipeShare.Accounts do
   @doc """
   Gets a single profile.
 
-  Raises `Ecto.NoResultsError` if the Profile does not exist.
-
-  ## Examples
-
-      iex> get_profile!(123)
-      %Profile{}
-
-      iex> get_profile!(456)
-      ** (Ecto.NoResultsError)
-
+  Returns `nil` if not found.
   """
-  def get_profile!(id), do: Repo.get!(Profile, id)
+  def get_profile!(access_token, user_id) do
+    case Supabase.init(access_token: access_token)
+         |> Postgrestex.from("profiles")
+         |> Postgrestex.eq("id", user_id)
+         |> Postgrestex.call()
+         |> Supabase.json() do
+      %{body: [profile]} -> profile
+      %{body: []} -> nil
+    end
+  end
 
   @doc """
   Creates a profile.
@@ -45,14 +45,17 @@ defmodule RecipeShare.Accounts do
       iex> create_profile(%{field: value})
       {:ok, %Profile{}}
 
-      iex> create_profile(%{field: bad_value})
-      {:error, %Ecto.Changeset{}}
-
   """
-  def create_profile(attrs \\ %{}) do
-    %Profile{}
-    |> Profile.changeset(attrs)
-    |> Repo.insert()
+  def create_profile(attrs, access_token) do
+    %{body: [profile], status: 201} =
+      Supabase.init(access_token: access_token)
+      |> Postgrestex.from("recipes")
+      |> Postgrestex.insert(attrs)
+      |> Postgrestex.update_headers(%{"Prefer" => "return=representation"})
+      |> Postgrestex.call()
+      |> Supabase.json(keys: :atoms)
+
+    {:ok, profile}
   end
 
   @doc """

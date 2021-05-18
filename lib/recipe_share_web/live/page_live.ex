@@ -1,6 +1,7 @@
 defmodule RecipeShareWeb.PageLive do
   use RecipeShareWeb, :surface_view
 
+  alias RecipeShare.Accounts
   alias RecipeShareWeb.Components.Page
   alias Surface.Components.Form
   alias Surface.Components.Form.Submit
@@ -139,19 +140,9 @@ defmodule RecipeShareWeb.PageLive do
 
     username = Map.get(user, "user_metadata", %{}) |> Map.get("full_name")
 
-    case Supabase.init(access_token: access_token)
-         |> Postgrestex.from("profiles")
-         |> Postgrestex.eq("id", user["id"])
-         |> Postgrestex.call()
-         |> Supabase.json() do
-      %{body: []} ->
-        Supabase.init(access_token: access_token)
-        |> Postgrestex.from("profiles")
-        |> Postgrestex.insert(%{"username" => username, "id" => user["id"]})
-        |> Postgrestex.call()
-
-      _ ->
-        nil
+    if is_nil(Accounts.get_profile!(access_token, user["id"])) do
+      {:ok, _profile} =
+        Accounts.create_profile(%{"username" => username, "id" => user["id"]}, access_token)
     end
 
     {:noreply, socket}
