@@ -45,7 +45,7 @@ defmodule RecipeShare.Recipes do
 
     Map.merge(%Recipe{}, recipe)
     |> Map.update(:ingredients, [], fn ingredients ->
-      Enum.map(ingredients, &Map.merge(%Ingredient{}, &1))
+      if is_nil(ingredients), do: [], else: Enum.map(ingredients, &Map.merge(%Ingredient{}, &1))
     end)
   end
 

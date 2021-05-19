@@ -15,10 +15,10 @@ defmodule RecipeShareWeb.Components.Page do
   @impl true
   def render(assigns) do
     ~H"""
-    <IndexPage :if={{ @page == "index" }} id="index-page" />
-    <RecipePage :if={{ @page == "recipes" }} user={{ @user }} access_token={{ @access_token }} uploads={{ Keyword.get(@opts, :uploads, %{}) }} id="recipes-page" />
-    <UserManagementPage :if={{ @page == "users" }} id="users-page" access_token={{ @access_token }} user={{ @user }} />
-    <RecipeDetail :if={{ @page == "recipe_detail" }} id="recipe-page" access_token={{ @access_token }} user={{ @user }} recipe_id={{ @recipe_id }} />
+    <IndexPage :if={{ @page == "index" or @user == %{} }} id="index-page" />
+    <RecipePage :if={{ @page == "recipes" and @user != %{} }} user={{ @user }} access_token={{ @access_token }} uploads={{ Keyword.get(@opts, :uploads, %{}) }} id="recipes-page" />
+    <UserManagementPage :if={{ @page == "users" and @user != %{} }} id="users-page" access_token={{ @access_token }} user={{ @user }} />
+    <RecipeDetail :if={{ @page == "recipe_detail" and @user != %{} }} id="recipe-page" access_token={{ @access_token }} user={{ @user }} recipe_id={{ @recipe_id }} />
     """
   end
 end
