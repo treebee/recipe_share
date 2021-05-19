@@ -3,11 +3,13 @@ defmodule RecipeShareWeb.Components.Page do
 
   alias RecipeShareWeb.IndexPage
   alias RecipeShareWeb.RecipePage
+  alias RecipeShareWeb.RecipeDetail
   alias RecipeShareWeb.UserManagementPage
 
-  prop page, :string, values: ["recipes", "index", "users"]
+  prop page, :string, values: ["recipes", "index", "users", "recipe_detail"]
   prop user, :map, default: %{}
   prop access_token, :string, default: nil
+  prop recipe_id, :integer, default: nil
   prop opts, :keyword, default: []
 
   @impl true
@@ -16,6 +18,7 @@ defmodule RecipeShareWeb.Components.Page do
     <IndexPage :if={{ @page == "index" }} id="index-page" />
     <RecipePage :if={{ @page == "recipes" }} user={{ @user }} access_token={{ @access_token }} uploads={{ Keyword.get(@opts, :uploads, %{}) }} id="recipes-page" />
     <UserManagementPage :if={{ @page == "users" }} id="users-page" access_token={{ @access_token }} user={{ @user }} />
+    <RecipeDetail :if={{ @page == "recipe_detail" }} id="recipe-page" access_token={{ @access_token }} user={{ @user }} recipe_id={{ @recipe_id }} />
     """
   end
 end

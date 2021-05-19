@@ -1,6 +1,7 @@
 defmodule RecipeShareWeb.IndexPage do
   use RecipeShareWeb, :surface_live_component
 
+  alias Surface.Components.LivePatch
   alias RecipeShare.Recipes
 
   data recipes, :list, default: []
@@ -26,7 +27,11 @@ defmodule RecipeShareWeb.IndexPage do
         <img width=200 height=180 class="mr-4 rounded-md" src={{ picture_url(recipe.cover_picture) }} />
         </div>
         <div class="">
-          <div class="text-xl font-bold">{{ recipe.name }}</div>
+          <LivePatch to="/recipes/{{ recipe.id }}">
+          <div class="text-xl font-bold">
+          {{ recipe.name }}
+          </div>
+          </LivePatch>
           <div class="text-sm">created at {{ recipe.inserted_at }}</div>
         </div>
       </div>
@@ -34,8 +39,4 @@ defmodule RecipeShareWeb.IndexPage do
     </div>
     """
   end
-
-  defp picture_url(nil), do: ""
-  defp picture_url(""), do: ""
-  defp picture_url(path), do: Path.join(Supabase.storage_url(), path)
 end

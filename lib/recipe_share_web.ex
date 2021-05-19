@@ -114,6 +114,8 @@ defmodule RecipeShareWeb do
       import RecipeShareWeb.ErrorHelpers
       import RecipeShareWeb.Gettext
       alias RecipeShareWeb.Router.Helpers, as: Routes
+
+      import RecipeShareWeb.Helpers
     end
   end
 

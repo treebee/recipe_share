@@ -24,6 +24,7 @@ defmodule RecipeShareWeb.Router do
 
     live "/", PageLive, :index
     live "/:page", PageLive, :index
+    live "/recipes/:recipe_id", PageLive, :index
   end
 
   # Other scopes may use custom stacks.

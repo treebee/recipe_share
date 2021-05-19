@@ -3,6 +3,7 @@ defmodule RecipeShareWeb.PageLive do
 
   alias RecipeShare.Accounts
   alias RecipeShareWeb.Components.Page
+  alias RecipeShareWeb.RecipeDetail
   alias Surface.Components.Form
   alias Surface.Components.Form.Submit
   alias Surface.Components.LivePatch
@@ -18,6 +19,7 @@ defmodule RecipeShareWeb.PageLive do
   data pages, :list, default: @default_pages
   data user, :map, default: %{}
   data access_token, :string, default: nil
+  data recipe_id, :integer, default: nil
 
   @impl true
   def mount(params, %{"access_token" => access_token}, socket) do
@@ -55,6 +57,11 @@ defmodule RecipeShareWeb.PageLive do
        |> Map.get(:module)
      )
      |> assign(:pages, @default_pages)}
+  end
+
+  @impl true
+  def handle_params(%{"recipe_id" => recipe_id}, _, socket) do
+    {:noreply, assign(socket, page: "recipe_detail", recipe_id: recipe_id, module: RecipeDetail)}
   end
 
   @impl true
@@ -137,7 +144,7 @@ defmodule RecipeShareWeb.PageLive do
         phx-value-key="error">{{ live_flash(@flash, :error) }}</p>
 
       <div>
-        <Page page={{ @page }} user={{ @user }} access_token={{ @access_token }} opts={{ uploads: @uploads }} />
+        <Page page={{ @page }} user={{ @user }} access_token={{ @access_token }} recipe_id={{ @recipe_id }} opts={{ uploads: @uploads }} />
       </div>
     </main>
     """

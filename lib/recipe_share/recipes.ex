@@ -32,6 +32,9 @@ defmodule RecipeShare.Recipes do
   Gets a single recipe.
 
   """
+  def get_recipe!(id, access_token) when is_integer(id),
+    do: get_recipe!(Integer.to_string(id), access_token)
+
   def get_recipe!(id, access_token) do
     %{status: 200, body: [recipe]} =
       Supabase.init(access_token: access_token)
