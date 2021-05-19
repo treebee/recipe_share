@@ -1,20 +1,17 @@
 # RecipeShare
 
-To start your Phoenix server:
+An (incomplete) application to play around with [Supabase](supabase.io),
+[Surface](https://surface-ui.org/) and to get comfortable with Postgres'
+[row level security](https://www.postgresql.org/docs/13/ddl-rowsecurity.html) features.
 
-  * Install dependencies with `mix deps.get`
-  * Create and migrate your database with `mix ecto.setup`
-  * Install Node.js dependencies with `npm install` inside the `assets` directory
-  * Start Phoenix endpoint with `mix phx.server`
+## User Roles
 
-Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
+- user (default)
+- moderator
+- admin
 
-Ready to run in production? Please [check our deployment guides](https://hexdocs.pm/phoenix/deployment.html).
+Moderators and Admins can delete recipes of other users.
+Admins can assign new roles to users.
+All users can see all _published_ recipes.
 
-## Learn more
-
-  * Official website: https://www.phoenixframework.org/
-  * Guides: https://hexdocs.pm/phoenix/overview.html
-  * Docs: https://hexdocs.pm/phoenix
-  * Forum: https://elixirforum.com/c/phoenix-forum
-  * Source: https://github.com/phoenixframework/phoenix
+Policies are created [here](./priv/repo/migrations/20210519141614_policies.exs)
